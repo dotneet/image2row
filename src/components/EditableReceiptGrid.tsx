@@ -26,6 +26,7 @@ const EditableReceiptGrid: React.FC = () => {
   const [editValue, setEditValue] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [isComposing, setIsComposing] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -34,6 +35,7 @@ const EditableReceiptGrid: React.FC = () => {
   useEffect(() => {
     if (activeCell && inputRef.current) {
       inputRef.current.focus();
+      // IME変換中でない場合のみ全選択する
       inputRef.current.select();
     }
   }, [activeCell]);
@@ -100,7 +102,13 @@ const EditableReceiptGrid: React.FC = () => {
   const handleKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement | HTMLButtonElement>,
   ) => {
+    // IME変換中またはIME変換確定時はキー処理をスキップ
+    if (isComposing || e.nativeEvent.isComposing) {
+      return;
+    }
+
     if (e.key === "Enter") {
+      e.preventDefault(); // デフォルトのEnterキー動作を防止
       handleCellBlur();
     } else if (e.key === "Escape") {
       setActiveCell(null);
@@ -197,6 +205,7 @@ const EditableReceiptGrid: React.FC = () => {
                       )}
                       onClick={() => handleCellClick(rowIndex, column.key)}
                       onKeyUp={(e) => {
+                        if (isComposing) return;
                         if (e.key === "Enter" || e.key === " ") {
                           handleCellClick(rowIndex, column.key);
                         }
@@ -223,6 +232,20 @@ const EditableReceiptGrid: React.FC = () => {
                           }
                           onBlur={handleCellBlur}
                           onKeyDown={handleKeyDown}
+                          onCompositionStart={() => setIsComposing(true)}
+                          onCompositionEnd={(e) => {
+                            // IME変換確定時の処理
+                            const target = e.target as HTMLInputElement;
+                            const length = target.value.length;
+
+                            // カーソルを文末に移動（選択状態を解除）
+                            target.setSelectionRange(length, length);
+
+                            // 少し遅延させてisComposingフラグを更新
+                            setTimeout(() => {
+                              setIsComposing(false);
+                            }, 100);
+                          }}
                         />
                       ) : column.key === "actions" ? (
                         <div className="flex justify-center items-center h-full">
