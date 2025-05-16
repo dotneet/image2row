@@ -2,33 +2,11 @@
 
 import { Button } from "@/components/ui/button"; // shadcnのButtonをインポート
 import { Input } from "@/components/ui/input"; // shadcnのInputをインポート
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"; // shadcnのSelectをインポート
 import { cn } from "@/lib/utils";
 import { FileSpreadsheet, Loader2, Trash2 } from "lucide-react"; // アイコンをインポート
 import { useEffect, useRef, useState } from "react";
-import { type GridRow, mapOcrResultToGridRows } from "../lib/mapJsonToGrid";
+import type { GridRow } from "../lib/mapJsonToGrid";
 import { useOcrStore } from "../store/ocrStore";
-
-// 勘定科目のオプション
-const ACCOUNT_CATEGORIES = [
-  "旅費交通費",
-  "接待交際費",
-  "消耗品費",
-  "通信費",
-  "水道光熱費",
-  "広告宣伝費",
-  "会議費",
-  "新聞図書費",
-  "諸会費",
-  "支払手数料",
-  "その他",
-];
 
 // 税区分のオプション (EditableReceiptGridでは直接使用されていませんが、参考として残します)
 // const TAX_CATEGORIES = ["課税10%", "課税8%", "非課税", "不課税", "免税"];
@@ -47,12 +25,18 @@ const EditableReceiptGrid: React.FC = () => {
   } | null>(null);
   const [editValue, setEditValue] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const selectTriggerRef = useRef<HTMLButtonElement>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (activeCell && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [activeCell]);
 
   // ストア側でgridRowsが更新されるため、このuseEffectは不要になりました。
   // useEffect(() => {
@@ -67,13 +51,13 @@ const EditableReceiptGrid: React.FC = () => {
     { key: "vendor", name: "支払先", width: "150px", editable: true },
     {
       key: "debitAccountCategory",
-      name: "借方",
+      name: "借方勘定科目",
       width: "150px",
       editable: true,
     },
     {
       key: "creditAccountCategory",
-      name: "貸方",
+      name: "貸方勘定科目",
       width: "150px",
       editable: true,
     },
@@ -98,13 +82,7 @@ const EditableReceiptGrid: React.FC = () => {
     const value = row[colKey as keyof GridRow];
     setActiveCell({ rowIndex, colKey });
     setEditValue(value !== undefined ? String(value) : "");
-
-    setTimeout(() => {
-      if (inputRef.current) {
-        inputRef.current.focus();
-        inputRef.current.select();
-      }
-    }, 0);
+    // setTimeout内のフォーカス処理はuseEffectに移動しました
   };
 
   const handleCellBlur = () => {
@@ -117,13 +95,6 @@ const EditableReceiptGrid: React.FC = () => {
     }
     updateGridRow(id, { [activeCell.colKey]: value });
     setActiveCell(null);
-  };
-
-  const handleSelectChange = (value: string) => {
-    if (!activeCell) return;
-    const { id } = gridRows[activeCell.rowIndex];
-    updateGridRow(id, { [activeCell.colKey]: value });
-    setActiveCell(null); // 選択後すぐに編集モードを終了
   };
 
   const handleKeyDown = (
