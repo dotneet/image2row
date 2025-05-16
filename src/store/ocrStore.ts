@@ -8,16 +8,35 @@ import { create } from "zustand";
 // ローカルストレージのキー
 const GRID_DATA_STORAGE_KEY = "i2row_grid_data";
 const API_KEY_STORAGE_KEY = "i2row_api_key";
+const OCR_MODEL_STORAGE_KEY = "i2row_ocr_model"; // OCRモデル保存用キー
+
+// 利用可能なOCRモデルのリスト
+export const AVAILABLE_OCR_MODELS = [
+  "gemini-2.5-flash-preview-04-17",
+  "gemini-2.5-pro-preview-05-06",
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro",
+] as const;
+
+export type OcrModel = (typeof AVAILABLE_OCR_MODELS)[number];
+
+// デフォルトのOCRモデル
+const DEFAULT_OCR_MODEL: OcrModel =
+  (process.env.NEXT_PUBLIC_DEFAULT_OCR_MODEL as OcrModel) || "gemini-1.5-flash"; // デフォルトをリスト内のものに変更
 
 // ローカルストレージからデータを読み込む関数
 const loadFromLocalStorage = (): {
   gridRows: GridRow[];
   apiKey: string | null;
+  selectedModel: OcrModel;
 } => {
   let gridRows: GridRow[] = [];
   let apiKey: string | null = null;
+  let selectedModel: OcrModel = DEFAULT_OCR_MODEL;
 
-  if (typeof window === "undefined") return { gridRows, apiKey };
+  if (typeof window === "undefined") return { gridRows, apiKey, selectedModel };
 
   try {
     const savedGridData = localStorage.getItem(GRID_DATA_STORAGE_KEY);
@@ -28,10 +47,16 @@ const loadFromLocalStorage = (): {
     if (savedApiKey) {
       apiKey = savedApiKey;
     }
+    const savedOcrModel = localStorage.getItem(
+      OCR_MODEL_STORAGE_KEY,
+    ) as OcrModel | null;
+    if (savedOcrModel && AVAILABLE_OCR_MODELS.includes(savedOcrModel)) {
+      selectedModel = savedOcrModel;
+    }
   } catch (error) {
     console.error("ローカルストレージからの読み込みに失敗しました:", error);
   }
-  return { gridRows, apiKey };
+  return { gridRows, apiKey, selectedModel };
 };
 
 // ローカルストレージにグリッドデータを保存する関数
@@ -59,7 +84,21 @@ const saveApiKeyToLocalStorage = (apiKey: string | null) => {
       localStorage.removeItem(API_KEY_STORAGE_KEY);
     }
   } catch (error) {
-    console.error("ローカルストレージへの保存に失敗しました:", error);
+    console.error("APIキーのローカルストレージへの保存に失敗しました:", error);
+  }
+};
+
+// ローカルストレージにOCRモデルを保存する関数
+const saveOcrModelToLocalStorage = (model: OcrModel) => {
+  if (typeof window === "undefined") return;
+
+  try {
+    localStorage.setItem(OCR_MODEL_STORAGE_KEY, model);
+  } catch (error) {
+    console.error(
+      "OCRモデルのローカルストレージへの保存に失敗しました:",
+      error,
+    );
   }
 };
 
@@ -74,6 +113,7 @@ interface OcrState {
   isProcessing: boolean; // OCR処理中かどうか
   error: string | null; // エラーメッセージ
   apiKey: string | null; // OCR APIキー
+  selectedModel: OcrModel; // 選択中のOCRモデル
 
   // グリッドデータ関連
   gridRows: GridRow[]; // 編集可能なグリッドの行データ
@@ -85,6 +125,7 @@ interface OcrState {
   setIsProcessing: (isProcessing: boolean) => void;
   setError: (error: string | null) => void;
   setApiKey: (apiKey: string | null) => void;
+  setSelectedModel: (model: OcrModel) => void;
   setGridRows: (rows: GridRow[]) => void;
   updateGridRow: (rowId: string, updatedRow: Partial<GridRow>) => void;
   deleteGridRow: (rowId: string) => void; // 行削除機能
@@ -102,6 +143,7 @@ export const useOcrStore = create<OcrState>((set, get) => ({
   isProcessing: false,
   error: null,
   apiKey: initialState.apiKey,
+  selectedModel: initialState.selectedModel,
   gridRows: initialState.gridRows,
 
   // アクション
@@ -125,6 +167,10 @@ export const useOcrStore = create<OcrState>((set, get) => ({
   setApiKey: (apiKey) => {
     set({ apiKey });
     saveApiKeyToLocalStorage(apiKey);
+  },
+  setSelectedModel: (model) => {
+    set({ selectedModel: model });
+    saveOcrModelToLocalStorage(model);
   },
   setGridRows: (rows) => {
     set({ gridRows: rows });
@@ -160,6 +206,7 @@ export const useOcrStore = create<OcrState>((set, get) => ({
       isProcessing: false,
       error: null,
       apiKey: null, // APIキーもリセット
+      selectedModel: DEFAULT_OCR_MODEL, // OCRモデルもリセット
       gridRows: [],
     }),
 
@@ -172,12 +219,14 @@ export const useOcrStore = create<OcrState>((set, get) => ({
       isProcessing: false,
       error: null,
       apiKey: null, // APIキーもクリア
+      selectedModel: DEFAULT_OCR_MODEL, // OCRモデルもクリア
       gridRows: [],
     });
     // ローカルストレージからも削除
     if (typeof window !== "undefined") {
       localStorage.removeItem(GRID_DATA_STORAGE_KEY);
       localStorage.removeItem(API_KEY_STORAGE_KEY);
+      localStorage.removeItem(OCR_MODEL_STORAGE_KEY); // OCRモデルも削除
     }
   },
 }));

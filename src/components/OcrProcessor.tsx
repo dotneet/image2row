@@ -20,6 +20,7 @@ const OcrProcessor: React.FC = () => {
     isProcessing, // 表示用 (ローディングスピナーなど)
     error, // 表示用 (エラーメッセージ)
     apiKey, // APIキーを取得
+    selectedModel, // 選択中のモデルを取得
   } = useOcrStore();
 
   // OCR処理を実行する関数 (page.tsxから移動)
@@ -43,7 +44,11 @@ const OcrProcessor: React.FC = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ image: capturedImage, apiKey }), // APIキーを送信
+        body: JSON.stringify({
+          image: capturedImage,
+          apiKey,
+          model: selectedModel, // 選択中のモデルを送信
+        }),
       });
 
       if (!response.ok) {
@@ -66,7 +71,7 @@ const OcrProcessor: React.FC = () => {
     } finally {
       useOcrStore.getState().setIsProcessing(false);
     }
-  }, [capturedImage, apiKey]);
+  }, [capturedImage, apiKey, selectedModel]);
 
   return (
     <div className="flex flex-col items-center gap-4 w-full">

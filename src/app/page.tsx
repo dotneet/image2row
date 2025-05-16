@@ -29,6 +29,8 @@ export default function Home() {
     setOcrResult,
     setIsProcessing,
     setError,
+    apiKey,
+    selectedModel,
   } = useOcrStore();
   const [isMounted, setIsMounted] = useState(false);
 
@@ -63,7 +65,8 @@ export default function Home() {
           body: JSON.stringify({
             image: imageSrc,
             recentJournalData,
-            geminiApiKey: process.env.GEMINI_API_KEY,
+            model: selectedModel,
+            geminiApiKey: apiKey,
           }),
         });
 

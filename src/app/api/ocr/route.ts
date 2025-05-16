@@ -113,12 +113,21 @@ async function retryWithExponentialBackoff<T>(
 
 export async function POST(request: NextRequest) {
   try {
-    // リクエストボディからbase64画像データを取得
+    // リクエストボディからbase64画像データ、APIキー、選択モデルを取得
     const body = await request.json();
-    const { image, apiKey: clientApiKey, recentJournalData } = body; // clientApiKey を受け取る
+    const {
+      image,
+      apiKey: clientApiKey,
+      model: clientModel, // クライアントからモデル名を受け取る
+      recentJournalData,
+    } = body;
 
     // APIキーの優先順位: クライアント提供 > 環境変数
     const apiKey = clientApiKey || process.env.GEMINI_API_KEY;
+    // モデル名の優先順位: クライアント提供 > 環境変数 > デフォルト
+    const modelName =
+      clientModel || process.env.DEFAULT_OCR_MODEL || "gemini-2.0-flash"; // デフォルトモデルを設定
+    console.log("modelName:", modelName);
 
     if (!apiKey) {
       return NextResponse.json(
@@ -141,9 +150,9 @@ export async function POST(request: NextRequest) {
     // base64データからMIMEタイプとデータ部分を分離
     const [mimeType, base64Data] = image.split(",");
 
-    // Gemini Pro Visionモデルの初期化
+    // Geminiモデルの初期化 (クライアント指定またはデフォルトのモデル名を使用)
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash", // モデル名を適切なものに修正 (例: gemini-pro-vision)
+      model: modelName,
       safetySettings,
     });
 
@@ -162,9 +171,6 @@ export async function POST(request: NextRequest) {
     });
     const response = await result.response;
     let text = response.text();
-
-    console.log("prompt:", prompt);
-    console.log("Raw Gemini response:", text);
 
     // マークダウンのコードブロック記法を削除（複数のパターンに対応）
     text = text
