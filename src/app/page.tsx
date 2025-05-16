@@ -66,7 +66,7 @@ export default function Home() {
             image: imageSrc,
             recentJournalData,
             model: selectedModel,
-            geminiApiKey: apiKey,
+            apiKey: apiKey,
           }),
         });
 

@@ -24,7 +24,7 @@ export type OcrModel = (typeof AVAILABLE_OCR_MODELS)[number];
 
 // デフォルトのOCRモデル
 const DEFAULT_OCR_MODEL: OcrModel =
-  (process.env.NEXT_PUBLIC_DEFAULT_OCR_MODEL as OcrModel) || "gemini-1.5-flash"; // デフォルトをリスト内のものに変更
+  (process.env.NEXT_PUBLIC_DEFAULT_OCR_MODEL as OcrModel) || "gemini-2.0-flash"; // デフォルトをリスト内のものに変更
 
 // ローカルストレージからデータを読み込む関数
 const loadFromLocalStorage = (): {
