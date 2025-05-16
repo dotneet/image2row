@@ -70,6 +70,8 @@ export function ApiKeySettingsDialog() {
           <AlertDialogTitle>設定</AlertDialogTitle>
           <AlertDialogDescription>
             OCR機能のAPIキーと使用するモデルを設定します。
+            <br />
+            APIキーや入力画像はサーバーに保持されません。
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="grid gap-6 py-4">
